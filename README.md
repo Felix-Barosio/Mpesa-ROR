@@ -1,24 +1,35 @@
-# README
+# Setup for M-pesa stkpush and stkpushquery on Rails APIs.
 
-This README would normally document whatever steps are necessary to get the
-application up and running.
+### Daraja Safaricom Developers Portal ~ Setup
 
-Things you may want to cover:
+- Get started by login in or create [Daraja](https://developer.safaricom.co.ke/) Developer free Account.
+- On apps tab, create a new sandbox app and give it your preferd name. Proceed to tick all the check boxes and click on create app.
+- You will be redirected to the app details page where you will find your consumer key and consumer secret. This will be crucial later during setup.
+- Navigate to the APIs tab and on M-pesa Express click on Simulate, on the input prompt select the app you just created.
+- Scroll down and click on test credentials. The initiator password and passkey will crucial also later.
 
-* Ruby version
+### Ngrok ~ Setup
 
-* System dependencies
+- Login or create [ngrok](https://ngrok.com/) free account.
+- Install on ubuntu by `sudo snap install ngrok` or download from website.
+- Connect your account to ngrok run `ngrok authtoken <your authtoken>`.
 
-* Configuration
+### Rails ~ Setup
 
-* Database creation
+- Create a new rails app `rails new <name> --api --minimal`.
+- Install or Add Gems below.
 
-* Database initialization
+```ruby
+gem 'rest-client'
+gem 'rack-cors'
+```
 
-* How to run the test suite
+- Run `bundle install`.
 
-* Services (job queues, cache servers, search engines, etc.)
+- Create M-pesa resource. Run `rails g resource Mpesa phoneNumber amount checkoutRequestID  merchantRequestID mpesaReceiptNumber --no-test-framework`.
+- Also add Access Token. Run ` rails g model AccessToken token --no-test-framework`.
+- Run `rails db:migrate`
 
-* Deployment instructions
+### Author Info
 
-* ...
+- [Felix Barosio](https://github.com/Felix-Barosio) ~ [Email](barosiofelix@gmail.com)

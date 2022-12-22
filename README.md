@@ -30,6 +30,29 @@ gem 'rack-cors'
 - Also add Access Token. Run ` rails g model AccessToken token --no-test-framework`.
 - Run `rails db:migrate`
 
+### Configurations
+
+- Navigate to `config/environments/development.rb` and add the following code.
+
+```ruby
+config.hosts << /[a-z0-9]+\.ngrok\.io/
+```
+
+> **This will allow us to access our rails app from ngrok**.
+
+- Navigate to `config/initializers/cors.rb` and add the following code or uncomment the existing code.
+
+```ruby
+Rails.application.config.middleware.insert_before 0, Rack::Cors do
+  allow do
+    origins '*'
+    resource '*', headers: :any, methods: [:get, :post, :options]
+  end
+end
+```
+
+> **Be sure to replace origins 'example.com' with origins '\*'if you uncomment existing code instead of adding the above code.**
+
 ### Author Info
 
 - [Felix Barosio](https://github.com/Felix-Barosio) ~ [Email](barosiofelix@gmail.com)

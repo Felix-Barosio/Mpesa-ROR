@@ -2,7 +2,7 @@
 
 ### Daraja Safaricom Developers Portal ~ Setup
 
-- Get started by login in or create [Daraja](https://developer.safaricom.co.ke/) Developer free Account.
+- Get started by login in or create [Daraja Developer](https://developer.safaricom.co.ke/) free Account.
 - On apps tab, create a new sandbox app and give it your preferd name. Proceed to tick all the check boxes and click on create app.
 - You will be redirected to the app details page where you will find your consumer key and consumer secret. This will be crucial later during setup.
 - Navigate to the APIs tab and on M-pesa Express click on Simulate, on the input prompt select the app you just created.
@@ -55,7 +55,7 @@ Rails.application.config.middleware.insert_before 0, Rack::Cors do
 end
 ```
 
-> **Be sure to replace origins 'example.com' with origins '\*'if you uncomment existing code instead of adding the above code.**
+> **Be sure to replace origins 'example.com' with origins '\*' if you uncomment existing code.**
 
 ### Author Info
 

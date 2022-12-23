@@ -96,6 +96,389 @@ config.before_configuration do
 end
 ```
 
+### Implementing The Main Code.
+
+- To get started, we start with the private methods to generate and get an access token from the Authorization API.
+- Generate Access Token Request ----> Gives you a time bound access token to call allowed APIs it provides you with an access token.
+
+- Get Access Token ----> Used to check if generate_acces_token_request is successful or not then it reads the responses and extracts the access token from the response and saves it to the database.
+
+- Add the this code to `app/controllers/mpesas_controller.rb`.
+
+- First add rest-client gem.
+
+```ruby
+require 'rest-client'
+```
+
+generate_access_token_request
+
+```ruby
+private
+
+    def generate_access_token_request
+        @url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+        @consumer_key = ENV['MPESA_CONSUMER_KEY']
+        @consumer_secret = ENV['MPESA_CONSUMER_SECRET']
+        @userpass = Base64::strict_encode64("#{@consumer_key}:#{@consumer_secret}")
+        headers = {
+            Authorization: "Bearer #{@userpass}"
+        }
+        res = RestClient::Request.execute( url: @url, method: :get, headers: {
+            Authorization: "Basic #{@userpass}"
+        })
+        res
+    end
+```
+
+get_access_token
+
+```ruby
+private
+
+...
+
+    def get_access_token
+
+        res = generate_access_token_request()
+        if res.code != 200
+            r = generate_access_token_request()
+            if res.code != 200
+                raise MpesaError('Unable to generate access token')
+            end
+        end
+
+        body = JSON.parse(res, { symbolize_names: true })
+        token = body[:access_token]
+        AccessToken.destroy_all()
+        AccessToken.create!(token: token)
+        token
+    end
+```
+
+#### Stk Push Request
+
+- On APIs ---> M-pesa Express you can [simulate](https://developer.safaricom.co.ke/APIs/MpesaExpressSimulate) a stk push request by selecting your app and changing Party A and Phone Number to your phone number.
+
+- Read more on the [documentation](https://developer.safaricom.co.ke/Documentation) ---> Lipa Na M-pesa Online API ---> Request Parameter Definition.
+- Add the following code to `app/controllers/mpesa_controller.rb`.
+
+```ruby
+    def stkpush
+        phoneNumber = params[:phoneNumber]
+        amount = params[:amount]
+
+        url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        timestamp = "#{Time.now.strftime "%Y%m%d%H%M%S"}"
+        business_short_code = ENV["MPESA_SHORTCODE"]
+        password = Base64.strict_encode64("#{business_short_code}#{ENV["MPESA_PASSKEY"]}#{timestamp}")
+        payload = {
+            'BusinessShortCode': business_short_code,
+            'Password': password,
+            'Timestamp': timestamp,
+            'TransactionType': "CustomerPayBillOnline",
+            'Amount': amount,
+            'PartyA': phoneNumber,
+            'PartyB': business_short_code,
+            'PhoneNumber': phoneNumber,
+            'CallBackURL': "#{ENV["CALLBACK_URL"]}/callback_url",
+            'AccountReference': 'Mpesa_ROR',
+            'TransactionDesc': "Payment for Mpesa_ROR"
+        }.to_json
+
+        headers = {
+            Content_type: 'application/json',
+            Authorization: "Bearer #{get_access_token}"
+        }
+
+        response = RestClient::Request.new({
+            method: :post,
+            url: url,
+            payload: payload,
+            headers: headers
+            }).execute do |response, request|
+                case response.code
+                when 500
+                    [ :error, JSON.parse(response.to_str) ]
+                when 400
+                    [ :error, JSON.parse(response.to_str) ]
+                when 200
+                    [ :success, JSON.parse(response.to_str) ]
+                else
+                    fail "Invalid response #{response.to_str} received."
+                end
+            end
+        render json: response
+
+
+    end
+```
+
+- Navigate to `config/routes.rb` and add this code.
+
+```ruby
+post 'stkpush', to: 'mpesas#stkpush'
+```
+
+- Open up Postman or Insomia or Thunder Client, create a new `POST /stkpush` request to your ngrok url with the following parameters.
+
+```json
+{
+  "phoneNumber": "2547xxxxxxxx",
+  "amount": "1"
+}
+```
+
+- When request is sent, an STK Push Prompt is sent to phoneNumber provided above. The response should look like this.
+
+```json
+[
+  "success",
+  {
+    "MerchantRequestID": "xxxx-xxxx-xxxx-xxxx",
+    "CheckoutRequestID": "ws_CO_XXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "ResponseCode": "0",
+    "ResponseDescription": "Success. Request accepted for processing",
+    "CustomerMessage": "Success. Request accepted for processing"
+  }
+]
+```
+
+#### STK push query request
+
+- After one has paid, you can use the mpesa query api to check if the payment was successful or not
+- On APIs ---> M-pesa Express you can simulate a [query](https://developer.safaricom.co.ke/APIs/MpesaExpressSimulate), a stk quesry push request by selecting your app and inputing the CheckoutRequestID you got from the previous step.
+- Add the following code to `app/controllers/mpesas_controller.rb`.
+
+```ruby
+  def stkquery
+        url = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
+
+        timestamp = "#{Time.now.strftime "%Y%m%d%H%M%S"}"
+        business_short_code = ENV["MPESA_SHORTCODE"]
+        password = Base64.strict_encode64("#{business_short_code}#{ENV["MPESA_PASSKEY"]}#{timestamp}")
+        payload = {
+            'BusinessShortCode': business_short_code,
+            'Password': password,
+            'Timestamp': timestamp,
+             # Check if payment has been paid
+            'CheckoutRequestID': params[:checkoutRequestID]
+        }.to_json
+
+        headers = {
+            Content_type: 'application/json',
+            Authorization: "Bearer #{ get_access_token }"
+        }
+
+        response = RestClient::Request.new({
+            method: :post,
+            url: url,
+            payload: payload,
+            headers: headers
+            }).execute do |response, request|
+                case response.code
+                when 500
+                    [ :error, JSON.parse(response.to_str) ]
+                when 400
+                    [ :error, JSON.parse(response.to_str) ]
+                when 200
+                    [ :success, JSON.parse(response.to_str) ]
+                else
+                    fail "Invalid response #{response.to_str} received."
+                end
+            end
+        render json: response
+
+
+    end
+```
+
+- Navigate to `config/routes.rb` and add this code.
+
+```ruby
+post 'stkquery', to: 'mpesas#stkquery'
+```
+
+- Open up Postman or Insomia or Thunder Client, create a new `POST /stkquery` request to your ngrok url with the following parameters.
+
+```json
+{
+  "checkoutRequestID": "ws_CO_XXXXXXXXXXXXXXXXXXXXXXXXXX"
+}
+```
+
+- Response looks like this:
+
+```json
+[
+  "success",
+  {
+    "ResponseCode": "0",
+    "ResponseDescription": "The service request has been accepted successsfully",
+    "MerchantRequestID": "xxxx-xxxx-xxxxxxxxx-x",
+    "CheckoutRequestID": "ws_CO_XXXXXXXXXXXXXXXXXXXXXXXXXX",
+    "ResultCode": "0",
+    "ResultDesc": "The service request is processed successfully."
+  }
+]
+```
+
+> You can use ResultDesc as a message prompt for your Client.
+
+- The resulting Full Code on `app/controllers/mpesas_controller.rb`.
+
+```ruby
+class MpesasController < ApplicationController
+
+    require 'rest-client'
+
+    # stkpush
+    # make payment
+
+    def stkpush
+        phoneNumber = params[:phoneNumber]
+        amount = params[:amount]
+
+        url = "https://sandbox.safaricom.co.ke/mpesa/stkpush/v1/processrequest"
+        timestamp = "#{Time.now.strftime "%Y%m%d%H%M%S"}"
+        business_short_code = ENV["MPESA_SHORTCODE"]
+        password = Base64.strict_encode64("#{business_short_code}#{ENV["MPESA_PASSKEY"]}#{timestamp}")
+        payload = {
+            'BusinessShortCode': business_short_code,
+            'Password': password,
+            'Timestamp': timestamp,
+            'TransactionType': "CustomerPayBillOnline",
+            'Amount': amount,
+            'PartyA': phoneNumber,
+            'PartyB': business_short_code,
+            'PhoneNumber': phoneNumber,
+            'CallBackURL': "#{ENV["CALLBACK_URL"]}/callback_url",
+            'AccountReference': 'Mpesa_ROR',
+            'TransactionDesc': "Payment for Mpesa_ROR"
+        }.to_json
+
+        headers = {
+            Content_type: 'application/json',
+            Authorization: "Bearer #{get_access_token}"
+        }
+
+        response = RestClient::Request.new({
+            method: :post,
+            url: url,
+            payload: payload,
+            headers: headers
+            }).execute do |response, request|
+                case response.code
+                when 500
+                    [ :error, JSON.parse(response.to_str) ]
+                when 400
+                    [ :error, JSON.parse(response.to_str) ]
+                when 200
+                    [ :success, JSON.parse(response.to_str) ]
+                else
+                    fail "Invalid response #{response.to_str} received."
+                end
+            end
+        render json: response
+
+
+    end
+
+
+    # stkquery
+    # confirm if payment is gone through
+
+    def stkquery
+        url = "https://sandbox.safaricom.co.ke/mpesa/stkpushquery/v1/query"
+
+        timestamp = "#{Time.now.strftime "%Y%m%d%H%M%S"}"
+        business_short_code = ENV["MPESA_SHORTCODE"]
+        password = Base64.strict_encode64("#{business_short_code}#{ENV["MPESA_PASSKEY"]}#{timestamp}")
+        payload = {
+            'BusinessShortCode': business_short_code,
+            'Password': password,
+            'Timestamp': timestamp,
+             # Check if payment has been paid
+            'CheckoutRequestID': params[:checkoutRequestID]
+        }.to_json
+
+        headers = {
+            Content_type: 'application/json',
+            Authorization: "Bearer #{ get_access_token }"
+        }
+
+        response = RestClient::Request.new({
+            method: :post,
+            url: url,
+            payload: payload,
+            headers: headers
+            }).execute do |response, request|
+                case response.code
+                when 500
+                    [ :error, JSON.parse(response.to_str) ]
+                when 400
+                    [ :error, JSON.parse(response.to_str) ]
+                when 200
+                    [ :success, JSON.parse(response.to_str) ]
+                else
+                    fail "Invalid response #{response.to_str} received."
+                end
+            end
+        render json: response
+
+
+    end
+
+    private
+
+    def generate_access_token_request
+        @url = "https://sandbox.safaricom.co.ke/oauth/v1/generate?grant_type=client_credentials"
+        @consumer_key = ENV['MPESA_CONSUMER_KEY']
+        @consumer_secret = ENV['MPESA_CONSUMER_SECRET']
+        @userpass = Base64::strict_encode64("#{@consumer_key}:#{@consumer_secret}")
+        headers = {
+            Authorization: "Bearer #{@userpass}"
+        }
+        res = RestClient::Request.execute( url: @url, method: :get, headers: {
+            Authorization: "Basic #{@userpass}"
+        })
+        res
+    end
+
+    def get_access_token
+
+        res = generate_access_token_request()
+        if res.code != 200
+            r = generate_access_token_request()
+            if res.code != 200
+                raise MpesaError('Unable to generate access token')
+            end
+        end
+
+        body = JSON.parse(res, { symbolize_names: true })
+        token = body[:access_token]
+        AccessToken.destroy_all()
+        AccessToken.create!(token: token)
+        token
+    end
+
+end
+```
+
+- Your `config/routes.rb` should look like this.
+
+```ruby
+Rails.application.routes.draw do
+  resources :mpesas
+  post 'stkpush', to: 'mpesas#stkpush'
+  post 'stkquery', to: 'mpesas#stkquery'
+end
+```
+
+- The full code can be accessed [here](https://github.com/Felix-Barosio/Mpesa-ROR) from my repository.
+
+> **N/B** - Remember to add the your local_env.yml file in .gitignore.
+
 ### Author Info
 
 - [Felix Barosio](https://github.com/Felix-Barosio) ~ [Email](barosiofelix@gmail.com)

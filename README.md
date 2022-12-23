@@ -111,7 +111,7 @@ end
 require 'rest-client'
 ```
 
-generate_access_token_request
+> generate_access_token_request
 
 ```ruby
 private
@@ -131,7 +131,7 @@ private
     end
 ```
 
-get_access_token
+> get_access_token
 
 ```ruby
 private
@@ -248,6 +248,7 @@ post 'stkpush', to: 'mpesas#stkpush'
 
 - After one has paid, you can use the mpesa query api to check if the payment was successful or not
 - On APIs ---> M-pesa Express you can simulate a [query](https://developer.safaricom.co.ke/APIs/MpesaExpressSimulate), a stk quesry push request by selecting your app and inputing the CheckoutRequestID you got from the previous step.
+
 - Add the following code to `app/controllers/mpesas_controller.rb`.
 
 ```ruby

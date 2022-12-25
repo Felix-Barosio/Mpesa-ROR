@@ -160,6 +160,22 @@ private
 
 - On APIs ---> M-pesa Express you can [simulate](https://developer.safaricom.co.ke/APIs/MpesaExpressSimulate) a stk push request by selecting your app and changing Party A and Phone Number to your phone number.
 
+```
+  payload = {
+    BusinessShortCode --> The organization shortcode used to receive the transaction.
+    Password --> Should be encoded with base64 format (business_short_code + mpesa_passkey+timestamp)
+    Timestamp --> The timestamp of the transaction in the format “%Y%m%d%H%M%S”
+    TransactionType --> The type of transaction (CustomerPayBillOnline or CustomerBuyGoodsOnline)
+    Amount --> The amount being transacted
+    PartyA --> The phone number sending the money.
+    PartyB --> The organization shortcode receiving the funds.Can be the same as the business shortcode.
+    PhoneNumber --> The mobile number to receive the STK push.Can be the same as Party A.
+    CallBackURL --> The url to where responses from M-Pesa will be sent to. Should be valid and secure.
+    AccountReference --> Value displayed to the customer in the STK Pin prompt message.
+    TransactionDesc --> A description of the transaction.
+  }
+```
+
 - Read more on the [documentation](https://developer.safaricom.co.ke/Documentation) ---> Lipa Na M-pesa Online API ---> Request Parameter Definition.
 - Add the following code to `app/controllers/mpesa_controller.rb`.
 

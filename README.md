@@ -1,4 +1,6 @@
-# Setup for M-pesa stkpush and stkpushquery on Rails APIs.
+# Setup for M-pesa stk push and query on Rails APIs.
+
+Rails App API to demo the basics of a simple stk push and stk push query (checking if payment is successfull or might have encounted any errors) on M-pesa.
 
 ### Daraja Safaricom Developers Portal ~ Setup
 

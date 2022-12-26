@@ -2,7 +2,9 @@
 
 Rails App API to demo the basics of a simple stk push and stk push query (checking if payment is successfull or might have encounted any errors) on M-pesa.
 
-### Environment Setup
+### Setup
+
+- In order to implement it, install the following:
 
 #### Daraja Safaricom Developers Portal
 

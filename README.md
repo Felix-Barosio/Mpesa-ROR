@@ -2,9 +2,9 @@
 
 Rails App API to demo the basics of a simple stk push and stk push query (checking if payment is successfull or might have encounted any errors) on M-pesa.
 
-### Setup.
+### Environment Setup
 
-### Daraja Safaricom Developers Portal ~ Setup
+#### Daraja Safaricom Developers Portal
 
 - Get started by login in or create [Daraja Developer](https://developer.safaricom.co.ke/) free Account.
 - On apps tab, create a new sandbox app and give it your preferd name. Proceed to tick all the check boxes and click on create app.
@@ -12,13 +12,13 @@ Rails App API to demo the basics of a simple stk push and stk push query (checki
 - Navigate to the APIs tab and on M-pesa Express click on Simulate, on the input prompt select the app you just created.
 - Scroll down and click on test credentials. The initiator password and passkey will crucial also later.
 
-### Ngrok ~ Setup
+#### Ngrok
 
 - Login or create [ngrok](https://ngrok.com/) free account.
 - Install on ubuntu by `sudo snap install ngrok` or download from website.
 - Connect your account to ngrok run `ngrok authtoken <your authtoken>`.
 
-### Rails ~ Setup
+#### Rails
 
 - Create a new rails app `rails new <name> --api --minimal`.
 - Install or Add Gems below.
